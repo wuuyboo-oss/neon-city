@@ -1,47 +1,105 @@
-// Keyboard and pointer input. Held keys give a steering direction; one-shot presses (start or
-// restart, pause) are queued as bit flags and taken once by the loop, so a press between two
-// frames is never lost and never counted twice.
+// Neon Harbor — keyboard and mouse input.
+// Held keys give movement and driving; one-shot presses (interact,
+// weapon switch, reload, pause, mute) are queued as flags and taken
+// once by the loop, so a press between two frames is never lost and
+// never counted twice. Dragging the mouse orbits the camera.
 
-export const ACTION_CONFIRM = 1;
-export const ACTION_PAUSE = 2;
+export const ACTION_INTERACT = 1;
+export const ACTION_ATTACK = 2;
+export const ACTION_WEAPON = 4;
+export const ACTION_RELOAD = 8;
+export const ACTION_PAUSE = 16;
+export const ACTION_MUTE = 32;
 
-const LEFT = new Set(['ArrowLeft', 'KeyA']);
-const RIGHT = new Set(['ArrowRight', 'KeyD']);
-const CONFIRM = new Set(['Space', 'Enter']);
-const PAUSE = new Set(['KeyP', 'Escape']);
+const MOVE_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ShiftLeft', 'ShiftRight', 'Space', 'KeyE']);
 
-export function createInput(target) {
-  let left = false;
-  let right = false;
+export function createInput(canvas) {
+  const keys = new Set();
   let actions = 0;
+  let dragYaw = 0;
+  let dragPitch = 0;
+  let dragging = false;
+  let lastX = 0;
+  let lastY = 0;
+  let wheelDelta = 0;
 
   window.addEventListener('keydown', (event) => {
-    if (LEFT.has(event.code)) left = true;
-    else if (RIGHT.has(event.code)) right = true;
-    else if (CONFIRM.has(event.code)) {
-      if (!event.repeat) actions |= ACTION_CONFIRM;
-    } else if (PAUSE.has(event.code)) {
-      if (!event.repeat) actions |= ACTION_PAUSE;
-    } else return;
-    event.preventDefault();
+    if (MOVE_KEYS.has(event.code)) {
+      keys.add(event.code);
+      // E is also a one-shot interact (enter/exit a car) as well as a
+      // held key (crack the vault): queue the press, keep the hold.
+      if (event.code === 'KeyE' && !event.repeat) actions |= ACTION_INTERACT;
+      event.preventDefault();
+      return;
+    }
+    if (event.repeat) return;
+    if (event.code === 'KeyE') actions |= ACTION_INTERACT;
+    else if (event.code === 'KeyR') actions |= ACTION_RELOAD;
+    else if (event.code === 'Digit1' || event.code === 'Digit2') actions |= ACTION_WEAPON;
+    else if (event.code === 'KeyM') actions |= ACTION_MUTE;
+    else if (event.code === 'Escape' || event.code === 'KeyP') actions |= ACTION_PAUSE;
   });
   window.addEventListener('keyup', (event) => {
-    if (LEFT.has(event.code)) left = false;
-    else if (RIGHT.has(event.code)) right = false;
+    keys.delete(event.code);
   });
-  // A key released while the tab is hidden never sends keyup: let go of everything on blur.
-  window.addEventListener('blur', () => {
-    left = false;
-    right = false;
+  window.addEventListener('blur', () => keys.clear());
+
+  canvas.addEventListener('pointerdown', (event) => {
+    // Clicking the canvas attacks (shoot / punch); dragging orbits.
+    dragging = true;
+    lastX = event.clientX;
+    lastY = event.clientY;
+    canvas.setPointerCapture(event.pointerId);
   });
-  target.addEventListener('pointerdown', () => {
-    actions |= ACTION_CONFIRM;
+  canvas.addEventListener('pointermove', (event) => {
+    if (!dragging) return;
+    dragYaw -= (event.clientX - lastX) * 0.005;
+    dragPitch -= (event.clientY - lastY) * 0.004;
+    dragPitch = Math.max(-0.5, Math.min(0.6, dragPitch));
+    lastX = event.clientX;
+    lastY = event.clientY;
   });
+  const endDrag = (event) => {
+    if (!dragging) return;
+    dragging = false;
+    // A click without a drag is an attack.
+    if (Math.abs(event.clientX - lastX) < 4 && Math.abs(event.clientY - lastY) < 4) {
+      actions |= ACTION_ATTACK;
+    }
+  };
+  canvas.addEventListener('pointerup', endDrag);
+  canvas.addEventListener('pointercancel', () => { dragging = false; });
+  canvas.addEventListener('wheel', (event) => {
+    wheelDelta += event.deltaY;
+    event.preventDefault();
+  }, { passive: false });
 
   return {
-    /** -1 for left, 1 for right, 0 for neither or both. */
-    direction() {
-      return (right ? 1 : 0) - (left ? 1 : 0);
+    /** Whether E is currently held down (for hold-to-rob). */
+    interactHeld() {
+      return keys.has('KeyE');
+    },
+    /** Mouse-wheel zoom accumulated since the last call. */
+    takeZoom() {
+      const out = wheelDelta;
+      wheelDelta = 0;
+      return out;
+    },
+    /** Forward/back/strafe as -1..1 in camera space. */
+    move() {
+      const f = (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0);
+      const s = (keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) - (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0);
+      return { forward: f, strafe: s, run: keys.has('ShiftLeft') || keys.has('ShiftRight') };
+    },
+    jumpHeld() {
+      return keys.has('Space');
+    },
+    /** Camera orbit deltas (radians) accumulated since the last call. */
+    takeOrbit() {
+      const out = { yaw: dragYaw, pitch: dragPitch };
+      dragYaw = 0;
+      dragPitch = 0;
+      return out;
     },
     /** The one-shot presses since the last call, as ACTION_* flags. */
     takeActions() {

@@ -1,12 +1,18 @@
-// A working gta6-01 entry (Node 22, standard library only): the game is this directory's
-// game/ folder, plain static files a desktop browser loads offline (game/index.html and its ES
-// modules, no library and no network request), and the program hands it in. It copies game/ and
-// screenshots/ from beside this file to /output and writes /output/dossier.json, the summary the
-// judge reads, with the vendored make.fun library. Only the plumbing, not an open world: Block
-// Dodger, a plain 2D canvas game where a paddle dodges falling blocks and catches coins, with a
-// title screen, score, lives and levels, game over and restart, flat colours and no sound. Build
-// your own open-world crime game in its place (three.js or any library you vendor under game/),
-// put your 3 or 4 PNG or JPEG screenshots in screenshots/ (the first by name is the cover) and run it.
+// Neon Harbor — a gta6-01 entry (Node 22, standard library only).
+// The game is this directory's game/ folder: plain static files a
+// desktop browser loads offline (game/index.html and its ES modules,
+// three.js vendored under game/vendor/, no network request). This
+// program hands it in: it copies game/ and screenshots/ from beside
+// this file to /output and writes /output/dossier.json, the summary
+// the judge reads, with the vendored make.fun library.
+//
+// The game itself: a sun-soaked open-world crime game. Explore Neon
+// Harbor on foot and by car, steal cars, outrun the Harbor PD, run
+// three story missions for the fixer Vera Kade, fight with fists and
+// a pistol, and save your progress. HUD with a live minimap, wanted
+// stars, cash, health, speed and mission objectives; synthesized
+// WebAudio sound (engine, sirens, gunshots); start, pause and
+// busted screens.
 //
 // Serve it locally with `node serve.ts`, then open http://localhost:8080.
 // Outside the grader's container, MAKEFUN_OUTPUT_DIR stands in for /output:

@@ -1,7 +1,8 @@
 # Neon Harbor
 
-[![make.fun](https://make.fun/badge/competition/gta6-01)](https://make.fun/bounty/gta6-01)
-[![make.fun](https://make.fun/badge/agent/makefun)](https://make.fun)
+[![make.fun · gta6-01](https://make.fun/badge/gta6-01.svg)](https://make.fun/bounty/gta6-01?utm_source=github&utm_medium=readme&utm_campaign=gta6-01)
+[![rank](https://make.fun/badge/gta6-01/wuuyboo-oss/neon-city/rank.svg)](https://make.fun/bounty/gta6-01/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=gta6-01)
+[![reward](https://make.fun/badge/gta6-01/wuuyboo-oss/neon-city/reward.svg)](https://make.fun/bounty/gta6-01?utm_source=github&utm_medium=readme&utm_campaign=gta6-01)
 
 **Neon Harbor** is a sun-soaked open-world crime game that runs in a desktop
 browser from static files — no build step, no network requests.
@@ -72,3 +73,7 @@ writes `dossier.json` with the vendored make.fun library.
 ## License
 
 MIT — see `LICENSE`.
+
+---
+
+<sub>Entered on [make.fun](https://make.fun/?ref=wkz0m1sg&utm_source=github&utm_medium=readme&utm_campaign=gta6-01) · AI agents build software for cash rewards</sub>

@@ -16,10 +16,23 @@ export const WORLD = {
   // Key places (x, z) on the map. Block centers sit 26 units off the
   // roads, so every landmark below is on a block or on a road, never
   // inside a building.
-  hideout: { x: -130, z: -130 },
+  //
+  // IMPORTANT — these are ENTRANCE points, not building centers. The
+  // missions ask the player to get within 6-8 units of them, so each
+  // one must be a spot the player can actually stand on:
+  //  - hideout: the house itself is at (-130,-130), 14x12, so the
+  //    closest a player on foot can get to its CENTER is 6.6 units —
+  //    outside the 6-unit goto radius. The target sits 8 units south
+  //    of the front door, on open ground by the road.
+  //  - bank: the hall is at (-26,-26), 30x20, so the closest approach
+  //    to its CENTER is 10.6 units — outside the 8-unit hold radius.
+  //    The target sits on the front steps, 6 units north of the face
+  //    with the gold sign, facing the road at z=-52.
+  // (The buildings themselves are placed in city.js and do not move.)
+  hideout: { x: -130, z: -116 },
   hospital: { x: 130, z: 130 },
   docks: { x: 26, z: 182 },
-  bank: { x: -26, z: -26 },
+  bank: { x: -26, z: -42 },
   plaza: { x: 26, z: 26 },
   pier: { x: 78, z: 190 },
 };
@@ -65,17 +78,30 @@ export const CAR = {
   radius: 2.1,
   health: 100,
   trafficSpeed: 9,
-  policeSpeed: 31, // a touch faster than the player's car, but clumsier in turns
+  // Police top speed 15 — well under the player's 30, so a driver
+  // at speed builds distance fast and the heat can actually decay.
+  // At 20 the player gained only 8 m/s and the police, who cut
+  // corners instead of following roads, never fell 25 units behind
+  // for the 12 quiet seconds a star needs — measured over two full
+  // escape drives, the wanted level never dropped from 4 and the
+  // player was busted at the hideout door. At 15 the gap opens at
+  // 13+ m/s on a straight and the police peel off. They still catch
+  // a slow or weaving driver, and they ram on contact.
+  policeSpeed: 15,
 };
 
 export const WANTED = {
   max: 5,
-  decaySeconds: 18, // quiet seconds before one star fades
+  decaySeconds: 12, // quiet seconds before one star fades. At 18 the
+  // bank-job escape (4 stars down to 2) needed 36 quiet seconds with
+  // four police converging, which never happened — the heat could not
+  // be lost. At 12 it is 24 seconds: still a real chase, but a fast
+  // driver who breaks away can actually cool off.
   stealCar: 1,
   hitPedestrian: 1,
   shoot: 1,
   killPedestrian: 2,
-  policePerStar: 1, // police cars chasing per star (cap 4)
+  policePerStar: 1, // police cars chasing per star (cap 3)
 };
 
 export const MISSIONS = {

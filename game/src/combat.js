@@ -26,7 +26,7 @@ export function shootPistol(G, camera) {
   if (combat.reloading > 0 || combat.cooldown > 0) return null;
   if (combat.ammo <= 0) {
     combat.reloading = PLAYER.reloadSeconds;
-    G.audio.pickup();
+    G.audio.dryFire();
     return { empty: true };
   }
   combat.ammo -= 1;

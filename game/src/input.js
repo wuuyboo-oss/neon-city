@@ -28,13 +28,14 @@ export function createInput(canvas) {
       keys.add(event.code);
       // E is also a one-shot interact (enter/exit a car) as well as a
       // held key (crack the vault): queue the press, keep the hold.
+      // (E is in MOVE_KEYS, so it is always caught here — there is no
+      // separate E branch below.)
       if (event.code === 'KeyE' && !event.repeat) actions |= ACTION_INTERACT;
       event.preventDefault();
       return;
     }
     if (event.repeat) return;
-    if (event.code === 'KeyE') actions |= ACTION_INTERACT;
-    else if (event.code === 'KeyR') actions |= ACTION_RELOAD;
+    if (event.code === 'KeyR') actions |= ACTION_RELOAD;
     else if (event.code === 'Digit1' || event.code === 'Digit2') actions |= ACTION_WEAPON;
     else if (event.code === 'KeyM') actions |= ACTION_MUTE;
     else if (event.code === 'Escape' || event.code === 'KeyP') actions |= ACTION_PAUSE;

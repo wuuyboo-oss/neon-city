@@ -11,12 +11,16 @@ export function loadSave() {
     if (!raw) return null;
     const data = JSON.parse(raw);
     if (typeof data !== 'object' || data === null) return null;
+    // Clamp the spawn point into the city: a hand-edited or stale save
+    // with coordinates outside the map would strand the player in the
+    // void (or inside a building) on load.
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, Number.isFinite(v) ? v : 0));
     return {
       cash: Number.isFinite(data.cash) ? data.cash : 0,
       missionIndex: Number.isFinite(data.missionIndex) ? data.missionIndex : 0,
       storyDone: data.storyDone === true,
-      x: Number.isFinite(data.x) ? data.x : 0,
-      z: Number.isFinite(data.z) ? data.z : 0,
+      x: clamp(data.x, -200, 200),
+      z: clamp(data.z, -200, 200),
       health: Number.isFinite(data.health) ? data.health : 100,
     };
   } catch {

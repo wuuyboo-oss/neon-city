@@ -26,6 +26,16 @@ import { buildDossier } from './vendor/makefun-game.ts';
 const here = fileURLToPath(new URL('.', import.meta.url));
 const out = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
 
+// Fail fast with a clear message if the game is not beside this file:
+// a dossier built from an empty folder would hand in nothing.
+if (!existsSync(join(here, 'game', 'index.html'))) {
+  throw new Error(`game/index.html not found beside ${here} — nothing to hand in.`);
+}
+const shotDir = join(here, 'screenshots');
+if (!existsSync(shotDir)) {
+  console.warn('warning: no screenshots/ beside this file — the dossier will carry no screenshots.');
+}
+
 mkdirSync(out, { recursive: true });
 cpSync(join(here, 'game'), join(out, 'game'), { recursive: true });
 mkdirSync(join(out, 'screenshots'), { recursive: true });

@@ -158,7 +158,12 @@ export function updatePoliceCar(car, targetPos, dt, colliders) {
   const dist = Math.hypot(dx, dz);
   const wantHeading = Math.atan2(dx, dz);
   const turn = Math.max(-1, Math.min(1, ((wantHeading - car.heading + Math.PI * 3) % (Math.PI * 2)) - Math.PI));
-  car.heading += turn * 2.4 * dt;
+  // Police turn at 1.4 rad/s — clumsier than the player's 1.9, as the
+  // config promises — and top out at 15, half the player's 30, so a
+  // fast driver builds distance on a straight and can lose them.
+  // At 2.4 rad/s they turned better than the player and could never
+  // be shaken, which made the escape steps nearly impossible.
+  car.heading += turn * 1.4 * dt;
   const wantSpeed = dist > 6 ? CAR.policeSpeed : CAR.policeSpeed * 0.6;
   car.speed += (wantSpeed - car.speed) * Math.min(1, dt * 1.2);
   car.pos.x += Math.sin(car.heading) * car.speed * dt;
@@ -209,10 +214,19 @@ export function drivePlayerCar(car, move, dt, colliders, cars) {
       car.speed *= 0.92;
     }
   }
-  const beforeX = car.pos.x;
-  const beforeZ = car.pos.z;
-  collideCircle(car.pos, CAR.radius, colliders);
-  if (car.pos.x !== beforeX || car.pos.z !== beforeZ) car.speed *= 0.55; // scraped a building
+  const push = collideCircle(car.pos, CAR.radius, colliders);
+  if (push.x !== 0 || push.z !== 0) {
+    // Scraped a building. How much of the push is against the car's
+    // heading (driving into the wall) versus sideways along it?
+    // Straight into the wall kills the speed; sliding along it only
+    // scrubs a little, so a car pinned against a wall can slide free
+    // instead of creeping at ~1 m/s until the police ram it apart.
+    const fx = Math.sin(car.heading);
+    const fz = Math.cos(car.heading);
+    const pushLen = Math.hypot(push.x, push.z) || 1;
+    const into = -(push.x * fx + push.z * fz) / pushLen;
+    car.speed *= into > 0.5 ? 0.55 : 0.95;
+  }
   car.mesh.position.copy(car.pos);
   car.mesh.rotation.y = car.heading;
   for (const wheel of car.mesh.userData.wheels) wheel.rotation.x += (car.speed * dt) / 0.42;

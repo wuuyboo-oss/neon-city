@@ -77,7 +77,10 @@ G.colliders = city.colliders;
 G.sun = city.sun;
 G.player = createPlayer(scene, WORLD.plaza.x, WORLD.plaza.z + 6);
 G.cars = spawnStreetCars(scene, 16);
-G.peds = spawnPedestrians(scene, 24, G.colliders);
+G.peds = spawnPedestrians(scene, 12, G.colliders); // 12, not 24: a
+// denser crowd mowed down pedestrians on every fast drive and the
+// wanted level climbed from accidents alone. Twelve still makes the
+// sidewalks feel alive.
 G.combat = createCombat();
 G.wanted = createWanted();
 G.missions = createMissions();
@@ -215,7 +218,13 @@ function enterCar(car) {
   G.player.mesh.visible = false;
   G.player.pos.copy(car.pos);
   G.audio.engine(0, true);
-  if (car.wasTraffic) commitCrime(G, WANTED.stealCar);
+  // Stealing is a crime only the FIRST time this car is taken. The
+  // player owns it after that — getting back into your own car is not
+  // another theft (re-entering used to charge +1 wanted every time).
+  if (car.wasTraffic && !car.playerOwned) {
+    commitCrime(G, WANTED.stealCar);
+    car.playerOwned = true;
+  }
   G.hud.toast('You are driving. W/S to drive, A/D to steer.');
 }
 
@@ -236,15 +245,26 @@ function exitCar() {
   G.audio.engine(0, false);
 }
 
-// Mark the street cars as stealable traffic from the start.
-for (const car of G.cars) car.wasTraffic = true;
+// Mark the street cars as stealable traffic from the start. A car the
+// player has stolen once is theirs — playerOwned starts false.
+for (const car of G.cars) {
+  car.wasTraffic = true;
+  car.playerOwned = false;
+}
 
 // --- police management -----------------------------------------------------------
 function managePolice(dt) {
   const want = wantedPoliceCount(G.wanted.level);
-  // Spawn more police cars when the heat calls for them.
+  // Spawn more police cars when the heat calls for them. They arrive
+  // BEHIND the player's direction of travel (a cone around the
+  // opposite of the heading), never ahead of it: a car spawned ahead
+  // of a fast driver closes at ~48 m/s and resets the quiet timer
+  // within a second, so with random-angle spawns the wanted level
+  // could never decay at all — measured over two escape drives. A
+  // pursuit that comes from behind is one a fast driver can outrun.
   if (G.policeCars.length < want) {
-    const angle = Math.random() * Math.PI * 2;
+    const heading = G.driving && G.playerCar ? G.playerCar.heading : G.player.heading;
+    const angle = heading + Math.PI + (Math.random() - 0.5) * 1.6;
     const dist = 70 + Math.random() * 30;
     const x = G.player.pos.x + Math.sin(angle) * dist;
     const z = G.player.pos.z + Math.cos(angle) * dist;
@@ -254,13 +274,19 @@ function managePolice(dt) {
     police.lostTimer = 0;
     G.policeCars.push(police);
   }
-  // Police that lose the trail for a while give up and drive off.
+  // Police that lose the trail for a while give up and drive off. They
+  // give up past 45 units (not 70): at 70 the player could never shake
+  // them — they cut corners while the player follows roads and slows
+  // for turns, so the gap never quite reached 70 in a measured escape
+  // drive, and the heat never decayed. At 45 a fast driver (28-30)
+  // outruns them (15) on a straight and they peel off, which is what
+  // lets the quiet timer run at all.
   for (let i = G.policeCars.length - 1; i >= 0; i--) {
     const police = G.policeCars[i];
     const d = Math.hypot(police.pos.x - G.player.pos.x, police.pos.z - G.player.pos.z);
-    if (G.wanted.level === 0 || d > 130) {
+    if (G.wanted.level === 0 || d > 45) {
       police.lostTimer = (police.lostTimer || 0) + dt;
-      if (police.lostTimer > 5 || G.wanted.level === 0) {
+      if (police.lostTimer > 3 || G.wanted.level === 0) {
         scene.remove(police.mesh);
         G.policeCars.splice(i, 1);
       }
@@ -369,11 +395,16 @@ function update(dt) {
         commitCrime(G, WANTED.hitPedestrian);
       }
     }
-    // Police ramming the player's car hurts.
+    // Police ramming the player's car hurts — 2 a hit, a glancing blow.
+    // The ram is a deterrent, not a death sentence: a police car on the
+    // player's tail for a whole job ground 100 health to zero at 4-6 a
+    // hit before the job was done, which made the game uncompletable
+    // for any driver slower than the police. At 2 the player survives
+    // a job's drive and must still escape the heat to recover.
     for (const police of G.policeCars) {
       const d = Math.hypot(police.pos.x - G.player.pos.x, police.pos.z - G.player.pos.z);
       if (d < 4.2 && Math.abs(police.speed) > 6) {
-        damagePlayer(G, 6);
+        damagePlayer(G, 2);
         G.audio.crash();
       }
     }
@@ -389,7 +420,12 @@ function update(dt) {
   const gunshotRecent = G.time - G.combat.lastShotAt < 1.5;
   for (const ped of G.peds) {
     const d = Math.hypot(ped.pos.x - G.player.pos.x, ped.pos.z - G.player.pos.z);
-    const threat = (G.driving && Math.abs(G.playerCar?.speed || 0) > 8 && d < 8) || (gunshotRecent && d < 22);
+    // A pedestrian flees when a fast car is near. The radius is 14, not
+    // 8: at 8 a car at 28 m/s covers the gap in 0.3 s and the ped (5.5
+    // m/s) cannot clear the car's path, so every drive mows down
+    // pedestrians and the wanted level climbs from accidents alone.
+    // At 14 the ped has a second to get out of the way.
+    const threat = (G.driving && Math.abs(G.playerCar?.speed || 0) > 8 && d < 14) || (gunshotRecent && d < 22);
     updatePedestrian(ped, dt, G.colliders, G.player.pos, threat);
   }
   for (const police of G.policeCars) {
@@ -430,7 +466,7 @@ function update(dt) {
     prompt = 'E — Get out of the car';
   } else {
     const car = nearestCar(4.5);
-    if (car) prompt = car.wasTraffic ? 'E — Steal this car' : 'E — Get in the car';
+    if (car) prompt = (car.wasTraffic && !car.playerOwned) ? 'E — Steal this car' : 'E — Get in the car';
     else if (G.missionStep && G.missionStep.type === 'hold') {
       const d = Math.hypot(G.missionStep.pos.x - G.player.pos.x, G.missionStep.pos.z - G.player.pos.z);
       if (d < G.missionStep.radius) prompt = 'Hold E — Crack the vault';
@@ -597,23 +633,32 @@ function stageShot(name) {
 // --- the frame loop -------------------------------------------------------------------------
 let last = performance.now();
 const shotStart = performance.now();
-let fpsEma = 60;
+// Adaptive quality: on a slow renderer (software GL, weak machines)
+// drop the shadow map, so the game stays playable everywhere. The
+// check is windowed and repeats until the drop happens — a one-shot
+// check 4s after load never fires on a slow renderer, because the
+// frame-time average has not converged by then (at ~5 FPS it still
+// reads ~25 after 4s, so shadows stayed on exactly where they were
+// needed off). Each window counts real frames over 2 wall-seconds.
 let qualityChecked = false;
+let qualityWindowStart = shotStart;
+let qualityFrames = 0;
 
 function frame(now) {
   requestAnimationFrame(frame);
   const rawDt = (now - last) / 1000;
   const dt = Math.min(0.05, rawDt);
   last = now;
-  // Adaptive quality: on a slow renderer (software GL, weak machines)
-  // drop the shadow map once, so the game stays playable everywhere.
-  if (rawDt > 0) fpsEma = fpsEma * 0.95 + (1 / rawDt) * 0.05;
-  if (!qualityChecked && now - shotStart > 4000) {
-    qualityChecked = true;
-    if (fpsEma < 10 && G.sun) {
+  qualityFrames += 1;
+  if (!qualityChecked && now - qualityWindowStart >= 2000) {
+    const windowFps = qualityFrames / ((now - qualityWindowStart) / 1000);
+    if (windowFps < 10 && G.sun) {
       G.sun.castShadow = false;
       renderer.setPixelRatio(1);
+      qualityChecked = true;
     }
+    qualityWindowStart = now;
+    qualityFrames = 0;
   }
   if (G.state === 'playing') {
     update(dt);

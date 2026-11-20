@@ -58,8 +58,13 @@ function makeSignTexture(text) {
   return tex;
 }
 
-/** Push a circle (x, z, radius) out of every building collider it overlaps. */
+/** Push a circle out of every building collider it overlaps, and return
+ *  the total displacement applied, so callers can tell a head-on hit
+ *  (pushed back against the direction of travel) from a slide along a
+ *  wall (pushed sideways, travel mostly unopposed). */
 export function collideCircle(pos, radius, colliders) {
+  let pushX = 0;
+  let pushZ = 0;
   for (const c of colliders) {
     const cx = Math.max(c.minX, Math.min(pos.x, c.maxX));
     const cz = Math.max(c.minZ, Math.min(pos.z, c.maxZ));
@@ -69,8 +74,12 @@ export function collideCircle(pos, radius, colliders) {
     if (d2 < radius * radius) {
       if (d2 > 0.0001) {
         const d = Math.sqrt(d2);
-        pos.x = cx + (dx / d) * radius;
-        pos.z = cz + (dz / d) * radius;
+        const nx = cx + (dx / d) * radius;
+        const nz = cz + (dz / d) * radius;
+        pushX += nx - pos.x;
+        pushZ += nz - pos.z;
+        pos.x = nx;
+        pos.z = nz;
       } else {
         // Center inside the box: push out along the smallest penetration.
         const pushLeft = pos.x - c.minX;
@@ -78,13 +87,20 @@ export function collideCircle(pos, radius, colliders) {
         const pushBack = pos.z - c.minZ;
         const pushFront = c.maxZ - pos.z;
         const m = Math.min(pushLeft, pushRight, pushBack, pushFront);
-        if (m === pushLeft) pos.x = c.minX - radius;
-        else if (m === pushRight) pos.x = c.maxX + radius;
-        else if (m === pushBack) pos.z = c.minZ - radius;
-        else pos.z = c.maxZ + radius;
+        let nx = pos.x;
+        let nz = pos.z;
+        if (m === pushLeft) nx = c.minX - radius;
+        else if (m === pushRight) nx = c.maxX + radius;
+        else if (m === pushBack) nz = c.minZ - radius;
+        else nz = c.maxZ + radius;
+        pushX += nx - pos.x;
+        pushZ += nz - pos.z;
+        pos.x = nx;
+        pos.z = nz;
       }
     }
   }
+  return { x: pushX, z: pushZ };
 }
 
 /** Whether a point lies inside any building collider. */

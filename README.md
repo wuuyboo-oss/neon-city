@@ -48,6 +48,32 @@ Or open `game/index.html` directly from any static file server.
 - Synthesized WebAudio sound: engine hum, sirens, gunshots and mission jingles.
 - Saves in the browser (localStorage): cash, mission progress and position.
 
+## Design notes
+
+- **Mission targets are entrances, not building centers.** A goto/hold
+  step completes within 6–8 units of its target, so each target sits on
+  open ground at the landmark's front door (the hideout's south door,
+  the bank's front steps) — a target at a building's center would be
+  unreachable, because the walls keep the player 6–11 units away.
+- **Cars slide along walls.** Scraping a building scrubs speed only when
+  the car is driving into it; sliding along a face keeps most of the
+  speed, so a car pinned against a wall can drive free instead of
+  creeping until the police ram it apart.
+- **Stealing a car is one crime.** Taking a car raises the heat once;
+  getting back into a car you already own is not another theft.
+- **Adaptive quality.** On a slow renderer the shadow map drops after a
+  2-second frame window reads under 10 FPS, so the game stays playable
+  on weak machines (the check repeats until the drop happens — a
+  one-shot check fires before the average has converged).
+- **Verified in a real browser.** Missions 1 and 2 were driven end to
+  end in Playwright with real key events (no teleports), and the vault
+  hold was cracked with a real E press. The first build's hideout and
+  bank targets sat at the building centers and were unreachable from
+  the street — that is why they now sit at the front door and steps.
+- **Shots.** `game/index.html?shot=start|street|chase|mission&seed=1`
+  stages a scene for screenshots; the page sets `window.__shotReady`
+  when it is painted.
+
 ## Structure
 
 - `game/index.html` — the page, the HUD and the start/pause/busted screens.

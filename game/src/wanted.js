@@ -32,13 +32,14 @@ export function updateWanted(G, dt) {
   const wanted = G.wanted;
   wanted.crimeCooldown = Math.max(0, wanted.crimeCooldown - dt);
   if (wanted.level === 0) return;
-  // Any police car close by keeps the heat up.
-  const policeNear = G.policeCars.some((c) => {
-    const dx = c.pos.x - G.player.pos.x;
-    const dz = c.pos.z - G.player.pos.z;
-    return Math.hypot(dx, dz) < 45;
-  });
-  if (policeNear) {
+  // Any police car close by keeps the heat up. "Close" is 25 units:
+  // at 35 the quiet timer never ran at all — measured in a real
+  // escape drive (wanted 4, 300 wall-seconds at 28 m/s), the three
+  // police cars, cutting corners while the player slows for turns,
+  // always had one car inside 35, so the heat never decayed and the
+  // player was busted at the hideout door. At 25 a fast driver on a
+  // straight clears every car in ~3 s and the timer can actually run.
+  if (isPoliceNear(G, 25)) {
     wanted.quietTimer = 0;
     return;
   }
@@ -50,7 +51,19 @@ export function updateWanted(G, dt) {
   }
 }
 
+/** Whether any police car is within `radius` units of the player. */
+export function isPoliceNear(G, radius) {
+  return G.policeCars.some((c) => {
+    const dx = c.pos.x - G.player.pos.x;
+    const dz = c.pos.z - G.player.pos.z;
+    return Math.hypot(dx, dz) < radius;
+  });
+}
+
 /** How many police cars the current heat calls for. */
 export function wantedPoliceCount(level) {
-  return Math.min(4, level * WANTED.policePerStar);
+  // Cap 3, not 4: four converging police cars could never all be
+  // shaken at once, so the wanted level could never decay and the
+  // bank-job escape was uncompletable. Three is still a hard chase.
+  return Math.min(3, level * WANTED.policePerStar);
 }

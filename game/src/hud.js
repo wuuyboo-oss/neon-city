@@ -4,7 +4,7 @@
 // water, buildings, the player arrow and blips for the mission,
 // the police and nearby cars.
 
-import { WORLD } from './config.js';
+import { WORLD, PLAYER } from './config.js';
 import { ROAD_COORDS } from './city.js';
 
 function $(id) {
@@ -91,7 +91,7 @@ export function createHud(city) {
       els.speed.textContent = driving ? `${kmh} km/h` : '';
       els.weapon.textContent = G.combat.weapon === 'pistol' ? 'PISTOL' : 'FISTS';
       els.ammo.textContent = G.combat.weapon === 'pistol'
-        ? (G.combat.reloading > 0 ? 'RELOADING…' : `${G.combat.ammo} / ${12}`)
+        ? (G.combat.reloading > 0 ? 'RELOADING…' : `${G.combat.ammo} / ${PLAYER.magazine}`)
         : '—';
       if (toastTimer > 0) {
         toastTimer -= dt;

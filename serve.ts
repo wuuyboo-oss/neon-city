@@ -66,7 +66,14 @@ createServer((request, response) => {
     'content-length': size,
     'cache-control': 'no-store',
   });
-  createReadStream(file).pipe(response);
+  // If the file vanishes mid-stream, end the response instead of
+  // leaving the browser hanging on a half-sent file.
+  const stream = createReadStream(file);
+  stream.on('error', () => {
+    if (!response.headersSent) response.writeHead(500);
+    response.end('read error');
+  });
+  stream.pipe(response);
 }).listen(port, '127.0.0.1', () => {
   console.log(`game/ is on http://localhost:${port}`);
 });

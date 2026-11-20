@@ -63,7 +63,10 @@ export function createEffects(scene) {
         p.pos.addScaledVector(p.vel, dt);
         if (p.pos.y < 0.15) {
           p.pos.y = 0.15;
-          p.vel.y *= -0.35;
+          // A slow particle that has landed stays down instead of
+          // jittering on the ground for the rest of its life.
+          if (Math.abs(p.vel.y) < 0.6) p.vel.y = 0;
+          else p.vel.y *= -0.35;
           p.vel.x *= 0.7;
           p.vel.z *= 0.7;
         }

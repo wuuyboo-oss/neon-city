@@ -10,6 +10,12 @@ import { WORLD, MISSIONS } from './config.js';
 import { commitCrime } from './wanted.js';
 
 export const MISSION_DEFS = [
+  // Step positions are the landmarks' ENTRANCES (WORLD.hideout and
+  // WORLD.bank in config.js point at the front door / front steps, not
+  // at the building centers): a goto/hold step completes within 6-8
+  // units, and the walls keep a player 6-11 units from a center, so a
+  // center target could never complete. The docks and the plaza are
+  // open ground and need no such offset.
   {
     id: 'pickup',
     title: 'Job 1 — Harbor Pickup',
@@ -51,6 +57,7 @@ export function createMissions() {
     holdProgress: 0,
     done: false,
     started: false,
+    heatSet: false, // the current escape step has set its wanted level
   };
 }
 
@@ -70,6 +77,7 @@ export function startMission(G) {
   G.missions.started = true;
   G.missions.step = 0;
   G.missions.holdProgress = 0;
+  G.missions.heatSet = false;
   G.hud.showBanner(mission.title, mission.intro);
   G.audio.missionDone();
 }
@@ -80,6 +88,7 @@ function advanceStep(G) {
   const mission = currentMission(missions);
   missions.step += 1;
   missions.holdProgress = 0;
+  missions.heatSet = false;
   if (missions.step >= mission.steps.length) {
     G.cash += mission.reward;
     G.hud.showBanner('JOB DONE', `+ $${mission.reward} — ${mission.title} complete.`);
@@ -120,18 +129,29 @@ export function updateMissions(G, dt, interactHeld) {
   G.beacon.set(step.pos, true);
 
   if (step.type === 'goto') {
+    // This branch only runs for goto steps, so the toast is unconditional.
     if (dist < step.radius) {
-      G.hud.toast(step.type === 'goto' ? 'Objective reached.' : '');
+      G.hud.toast('Objective reached.');
       advanceStep(G);
     }
     return;
   }
   if (step.type === 'escape') {
-    // The escape sets the heat the moment it begins.
-    if (G.wanted.level < step.wanted) {
-      G.wanted.level = step.wanted;
-      G.wanted.quietTimer = 0;
-      G.hud.toast(`WANTED LEVEL ${step.wanted} — run!`);
+    // The escape sets the heat ONCE, when the step begins. Setting it
+    // every frame would undo the decay: the moment a star faded
+    // (4 -> 3), the step would push it straight back to 4 and zero
+    // the quiet timer, so the escape could never complete. Measured
+    // in a real drive, the timer reached 12 twice and the level was
+    // forced back both times. heatSet (cleared when the step
+    // advances) stops that — after the one-time set, the heat is
+    // the player's to lose.
+    if (!missions.heatSet) {
+      if (G.wanted.level < step.wanted) {
+        G.wanted.level = step.wanted;
+        G.wanted.quietTimer = 0;
+        G.hud.toast(`WANTED LEVEL ${step.wanted} — run!`);
+      }
+      missions.heatSet = true;
     }
     if (dist < step.radius && G.wanted.level <= 2) {
       advanceStep(G);

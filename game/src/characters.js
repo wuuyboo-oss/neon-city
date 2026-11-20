@@ -153,8 +153,13 @@ export function updatePedestrian(ped, dt, colliders, threatPos, threatNear) {
     const dz = ped.pos.z - threatPos.z;
     const d = Math.hypot(dx, dz) || 1;
     ped.heading = Math.atan2(dx / d, dz / d);
-    ped.pos.x += (dx / d) * 5.5 * dt;
-    ped.pos.z += (dz / d) * 5.5 * dt;
+    // Flee at 8 m/s: at 5.5 a car at 28 m/s closed the 14-unit warning
+    // gap in 0.5 s and the ped (moving ~2.75 units) could not clear
+    // the car's path, so every drive mowed down pedestrians and the
+    // wanted level climbed from accidents alone. At 8 the ped clears
+    // ~4 units in that time and gets out of the way.
+    ped.pos.x += (dx / d) * 8 * dt;
+    ped.pos.z += (dz / d) * 8 * dt;
     ped.walkPhase += dt * 9;
   } else {
     // Stroll: keep walking, turn at random, avoid buildings.
@@ -166,6 +171,11 @@ export function updatePedestrian(ped, dt, colliders, threatPos, threatNear) {
       ped.heading += Math.PI;
     }
   }
+  // Stay in the city either way: the stroll branch turns around at the
+  // bounds, but a fleeing pedestrian would otherwise run straight out
+  // of the map (and into the water) while escaping.
+  ped.pos.x = Math.max(-WORLD.cityHalf, Math.min(WORLD.cityHalf, ped.pos.x));
+  ped.pos.z = Math.max(-WORLD.cityHalf, Math.min(WORLD.waterStart - 4, ped.pos.z));
   collideCircle(ped.pos, 0.5, colliders);
   ped.mesh.position.copy(ped.pos);
   ped.mesh.rotation.y = ped.heading;

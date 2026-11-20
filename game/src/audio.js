@@ -35,19 +35,20 @@ export function createAudio() {
       engineOsc.connect(engineFilter).connect(engineGain).connect(master);
       engineOsc.start();
       // Siren: two tones alternating, quiet until police are near.
-      sirenOscA = ctx.createOscillator();
-      sirenOscA.type = 'sine';
-      sirenOscA.frequency.value = 700;
-      sirenOscB = ctx.createOscillator();
-      sirenOscB.type = 'sine';
-      sirenOscB.frequency.value = 950;
+      // One helper builds both oscillators so the pair stays in sync.
+      const tone = (freq) => {
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        osc.connect(sirenGain);
+        osc.start();
+        return osc;
+      };
       sirenGain = ctx.createGain();
       sirenGain.gain.value = 0;
-      sirenOscA.connect(sirenGain);
-      sirenOscB.connect(sirenGain);
+      sirenOscA = tone(700);
+      sirenOscB = tone(950);
       sirenGain.connect(master);
-      sirenOscA.start();
-      sirenOscB.start();
       started = true;
       return true;
     } catch {
@@ -117,6 +118,10 @@ export function createAudio() {
     },
     gunshot() {
       noiseBurst(0.18, 0.5, 900);
+    },
+    /** The dry click of an empty magazine — not the pickup chime. */
+    dryFire() {
+      beep(1800, 0.05, 'square', 0.12);
     },
     punch() {
       noiseBurst(0.08, 0.3, 500);

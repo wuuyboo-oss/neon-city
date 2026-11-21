@@ -1,9 +1,3 @@
-# Generated build output (main.ts writes it with MAKEFUN_OUTPUT_DIR). Never commit.
+node_modules/
 out/
-
-# OS and editor droppings. Never commit.
-.DS_Store
-Thumbs.db
-.vscode/
-.idea/
-*.swp
+*.log

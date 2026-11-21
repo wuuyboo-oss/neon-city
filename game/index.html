@@ -3,116 +3,52 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Neon Harbor — a sun-soaked open-world crime game. Steal cars, lose the Harbor PD, and run three story missions for the fixer Vera Kade.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230c141c'/%3E%3Ctext x='16' y='23' font-size='18' text-anchor='middle' fill='%23ffd23a'%3E%E2%98%85%3C/text%3E%3C/svg%3E">
-<title>Neon Harbor — an open-world crime game</title>
+<title>Neon Harbor — Open-World Crime Game</title>
 <style>
-  html, body { margin: 0; height: 100%; overflow: hidden; background: #0c141c; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0b1026; font-family: 'Segoe UI', system-ui, sans-serif; }
   #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  #hud { position: fixed; inset: 0; pointer-events: none; color: #fff; z-index: 5; }
+  #top-left { position: absolute; top: 14px; left: 16px; }
+  #health-bar { width: 220px; height: 14px; background: rgba(0,0,0,.55); border: 1px solid #555; border-radius: 7px; overflow: hidden; }
+  #health-fill { height: 100%; width: 100%; background: linear-gradient(90deg,#37d67a,#7CFC00); }
+  #health-text { font-size: 12px; margin-top: 3px; text-shadow: 0 1px 2px #000; }
+  #cash { font-size: 26px; font-weight: 800; color: #7CFC00; text-shadow: 0 2px 4px #000; margin-top: 6px; }
+  #stars { position: absolute; top: 12px; right: 16px; font-size: 30px; letter-spacing: 4px; text-shadow: 0 2px 4px #000; }
+  #mission { position: absolute; top: 56px; left: 16px; max-width: 420px; font-size: 15px; background: rgba(0,0,0,.55); padding: 8px 12px; border-left: 4px solid #ff2d78; border-radius: 4px; }
+  #flash { position: absolute; top: 22%; left: 50%; transform: translateX(-50%); font-size: 26px; font-weight: 800; color: #ffd400; text-shadow: 0 2px 8px #000; text-align: center; }
+  #speed { position: absolute; bottom: 16px; right: 16px; font-size: 18px; background: rgba(0,0,0,.55); padding: 6px 12px; border-radius: 6px; }
+  #minimap { position: absolute; bottom: 16px; left: 16px; width: 160px; height: 160px; border: 2px solid rgba(0,229,255,.6); border-radius: 6px; background: #0a0e18; }
+  #controls { position: absolute; bottom: 16px; left: 190px; font-size: 12px; color: #ccc; background: rgba(0,0,0,.5); padding: 6px 10px; border-radius: 6px; max-width: 300px; }
+  #start-screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, rgba(11,16,38,.55), rgba(5,5,15,.92)); color: #fff; z-index: 10; text-align: center; }
+  #start-screen h1 { font-size: 64px; margin: 0; letter-spacing: 4px; background: linear-gradient(90deg,#ff2d78,#00e5ff,#ffd400); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: 0 0 30px rgba(255,45,120,.35); }
+  #start-screen p { font-size: 17px; color: #ddd; max-width: 560px; line-height: 1.6; }
+  #start-btn { pointer-events: auto; cursor: pointer; margin-top: 18px; font-size: 22px; font-weight: 800; padding: 14px 44px; border: none; border-radius: 8px; color: #0b1026; background: linear-gradient(90deg,#ff2d78,#ffd400); }
+  #start-btn:hover { filter: brightness(1.15); }
   #status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-
-  /* --- HUD --- */
-  #hud { position: fixed; inset: 0; pointer-events: none; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.7); }
-  #cash-box { position: absolute; top: 14px; left: 16px; font-size: 26px; font-weight: 800; color: #7dff9a; }
-  #health-box { position: absolute; top: 52px; left: 16px; width: 210px; }
-  #health-bar { height: 12px; background: rgba(0,0,0,.55); border: 1px solid rgba(255,255,255,.5); border-radius: 6px; overflow: hidden; }
-  #health-fill { height: 100%; width: 100%; background: #37c978; }
-  #health-text { font-size: 12px; margin-top: 2px; }
-  #stars { position: absolute; top: 12px; right: 18px; font-size: 30px; letter-spacing: 4px; color: #ffd23a; }
-  #objective { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); max-width: 46%; text-align: center; font-size: 15px; font-weight: 600; background: rgba(0,0,0,.45); padding: 8px 14px; border-radius: 8px; }
-  #minimap { position: absolute; left: 16px; bottom: 16px; width: 200px; height: 200px; border: 2px solid rgba(255,255,255,.6); border-radius: 8px; background: rgba(12,20,28,.85); }
-  #speed { position: absolute; right: 20px; bottom: 64px; font-size: 30px; font-weight: 800; text-align: right; }
-  #weapon-box { position: absolute; right: 20px; bottom: 20px; font-size: 16px; font-weight: 700; text-align: right; }
-  #crosshair { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; display: none; }
-  #crosshair::before, #crosshair::after { content: ""; position: absolute; background: #fff; box-shadow: 0 0 3px #000; }
-  #crosshair::before { left: 10px; top: 0; width: 2px; height: 22px; }
-  #crosshair::after { left: 0; top: 10px; width: 22px; height: 2px; }
-  #interact { position: absolute; left: 50%; bottom: 24%; transform: translateX(-50%); display: none; font-size: 17px; font-weight: 700; background: rgba(0,0,0,.6); padding: 8px 16px; border-radius: 8px; border: 1px solid #ffd23a; }
-  #toast { position: absolute; left: 50%; bottom: 15%; transform: translateX(-50%); font-size: 16px; background: rgba(0,0,0,.6); padding: 8px 16px; border-radius: 8px; opacity: 0; transition: opacity .3s; white-space: nowrap; }
-  #banner { position: absolute; left: 50%; top: 22%; transform: translateX(-50%); text-align: center; opacity: 0; transition: opacity .4s; width: 80%; }
-  #banner-title { font-size: 42px; font-weight: 900; letter-spacing: 2px; color: #ffd23a; text-shadow: 0 2px 12px rgba(0,0,0,.8); }
-  #banner-text { font-size: 17px; margin-top: 6px; background: rgba(0,0,0,.55); display: inline-block; padding: 8px 16px; border-radius: 8px; }
-  #damage { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 55%, rgba(220,20,20,.55) 100%); opacity: 0; }
-
-  /* --- Screens --- */
-  .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: #fff; background: linear-gradient(180deg, rgba(10,20,34,.82), rgba(10,20,34,.62) 55%, rgba(10,20,34,.85)); z-index: 10; }
-  .screen h1 { font-size: 64px; margin: 0; letter-spacing: 4px; color: #ffd23a; text-shadow: 0 0 24px rgba(255,160,40,.8), 0 3px 0 #a33; }
-  .screen h2 { font-size: 20px; font-weight: 400; color: #cfe8ff; margin: 8px 0 4px; }
-  .screen p.story { max-width: 620px; font-size: 16px; line-height: 1.55; color: #e8eef4; }
-  .controls { display: grid; grid-template-columns: auto auto; gap: 4px 18px; text-align: left; font-size: 14px; background: rgba(0,0,0,.45); padding: 14px 20px; border-radius: 10px; margin: 14px 0; }
-  .controls b { color: #ffd23a; }
-  .btn { pointer-events: auto; cursor: pointer; font-size: 18px; font-weight: 800; color: #122; background: #ffd23a; border: none; border-radius: 10px; padding: 12px 28px; margin: 6px; box-shadow: 0 4px 0 #a37a00; }
-  .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #a37a00; }
-  .btn.secondary { background: #dfe8f0; box-shadow: 0 4px 0 #7a8a99; }
-  #save-note { font-size: 14px; color: #bcd; margin-top: 8px; }
-  #screen-pause, #screen-dead { display: none; }
 </style>
-<script type="importmap">
-{ "imports": { "three": "./vendor/three.module.min.js" } }
-</script>
 </head>
 <body>
-<canvas id="game" aria-label="Neon Harbor: an open-world crime game. Drive, steal cars, dodge the police and run three story missions."></canvas>
-<p id="status" role="status" aria-live="polite"></p>
-
+<canvas id="game" aria-label="Neon Harbor: open-world crime game"></canvas>
 <div id="hud">
-  <div id="cash-box">$<span id="cash">0</span></div>
-  <div id="health-box">
+  <div id="top-left">
     <div id="health-bar"><div id="health-fill"></div></div>
-    <div id="health-text">100</div>
+    <div id="health-text">HP 100</div>
+    <div id="cash">$0</div>
   </div>
   <div id="stars">☆☆☆☆☆</div>
-  <div id="objective">Welcome to Neon Harbor.</div>
-  <canvas id="minimap" width="200" height="200"></canvas>
+  <div id="mission">Loading…</div>
+  <div id="flash"></div>
   <div id="speed"></div>
-  <div id="weapon-box"><span id="weapon">FISTS</span> · <span id="ammo">—</span></div>
-  <div id="crosshair"></div>
-  <div id="interact"></div>
-  <div id="toast"></div>
-  <div id="banner"><div id="banner-title"></div><div id="banner-text"></div></div>
+  <canvas id="minimap" width="160" height="160"></canvas>
+  <div id="controls">WASD move / drive · Mouse drag camera · E enter/exit car, hold E at vault · Click pistol · F punch · Space brake · R restart · M mute</div>
 </div>
-<div id="damage"></div>
-
-<div id="screen-title" class="screen">
+<div id="start-screen">
   <h1>NEON HARBOR</h1>
-  <h2>A sun-soaked open-world crime game</h2>
-  <p class="story">Rex Marlowe is out of Harbor Pen with nothing but a fast mouth and faster hands.
-  The fixer Vera Kade has three jobs for him — a pickup at the docks, a getaway across town,
-  and the Harbor Bank itself. Steal cars, lose the cops, get paid. The city is yours.</p>
-  <div class="controls">
-    <span><b>W A S D</b></span><span>Move / drive</span>
-    <span><b>Shift</b></span><span>Run</span>
-    <span><b>Mouse drag</b></span><span>Look around</span>
-    <span><b>E</b></span><span>Get in / steal a car · hold to crack the vault</span>
-    <span><b>Click</b></span><span>Punch / shoot</span>
-    <span><b>1 / 2</b></span><span>Fists / pistol &nbsp;·&nbsp; <b>R</b> reload</span>
-    <span><b>Esc</b></span><span>Pause &nbsp;·&nbsp; <b>M</b> mute</span>
-  </div>
-  <div>
-    <button id="btn-start" class="btn">START NEW GAME</button>
-    <button id="btn-continue" class="btn secondary">CONTINUE</button>
-  </div>
-  <div id="save-note"></div>
+  <p>An original open-world crime game. Three jobs, $3,300 on the line: meet the fixer at the hideout, deliver a stolen car to the chop shop, crack the bank vault — then lose the heat and become <b>KING OF THE HARBOR</b>.</p>
+  <p>WASD to move and drive · E to enter cars · Click to shoot · F to punch · Drag mouse to look around</p>
+  <button id="start-btn">START THE NIGHT</button>
 </div>
-
-<div id="screen-pause" class="screen">
-  <h1>PAUSED</h1>
-  <p class="story">The city waits for no one, Rex. Except right now — it waits for you.</p>
-  <div>
-    <button id="btn-resume" class="btn">RESUME</button>
-    <button id="btn-quit-title" class="btn secondary">SAVE &amp; QUIT TO TITLE</button>
-  </div>
-</div>
-
-<div id="screen-dead" class="screen">
-  <h1>BUSTED</h1>
-  <p class="story">Harbor PD got you. The hospital bill is $200, the heat is off — but Vera's jobs are still waiting.</p>
-  <div>
-    <button id="btn-respawn" class="btn">WAKE UP AT THE HOSPITAL</button>
-    <button id="btn-restart" class="btn secondary">START OVER</button>
-  </div>
-</div>
-
+<p id="status" role="status" aria-live="polite"></p>
 <script type="module" src="./src/main.js"></script>
 </body>
 </html>

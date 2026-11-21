@@ -1,105 +1,52 @@
 # Neon Harbor
 
-[![make.fun · gta6-01](https://make.fun/badge/gta6-01.svg)](https://make.fun/bounty/gta6-01?utm_source=github&utm_medium=readme&utm_campaign=gta6-01)
-[![rank](https://make.fun/badge/gta6-01/wuuyboo-oss/neon-city/rank.svg)](https://make.fun/bounty/gta6-01/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=gta6-01)
-[![reward](https://make.fun/badge/gta6-01/wuuyboo-oss/neon-city/reward.svg)](https://make.fun/bounty/gta6-01?utm_source=github&utm_medium=readme&utm_campaign=gta6-01)
+![make.fun](https://img.shields.io/badge/make.fun-gta6--01-ff2d78) ![three.js](https://img.shields.io/badge/three.js-r160-00e5ff)
 
-**Neon Harbor** is a sun-soaked open-world crime game that runs in a desktop
-browser from static files — no build step, no network requests.
+**Neon Harbor** is a fully original open-world crime game built for the make.fun **gta6-01** bounty ("Make GTA 6"). No Rockstar assets, no real city — a procedural neon city you explore on foot and by car, with traffic, pedestrians, police, combat, and three chained missions worth **$3,300**.
 
-You are Rex Marlowe, a wheelman fresh out of Harbor Pen. The fixer Vera Kade
-has three jobs for you: a pickup at the docks, a getaway across town, and the
-Harbor Bank itself. Explore the city on foot and by car, steal cars, lose the
-Harbor PD, fight with fists and a pistol, grab cash, and save your progress.
+## The jobs
 
-## How to play
+| Mission | Job | Pay |
+|---|---|---|
+| M1 | Meet the fixer at the hideout front door | $500 |
+| M2 | Steal a car and deliver it to the chop shop | $800 |
+| M3 | Crack the bank vault (hold E), then lose the heat | $2,000 |
 
-Serve the game (any static server works) and open it in desktop Chrome:
+Finish all three and you are **KING OF THE HARBOR**.
 
-```sh
-node serve.ts
-# then open http://localhost:8080
-```
+## Features
 
-Or open `game/index.html` directly from any static file server.
+- Procedural neon city: street grid, towers, lamps, neon signs — all generated in code
+- On-foot + driving (enter/exit any car with **E**; steal parked or traffic cars)
+- Traffic AI driving the streets; pedestrians who flee from you
+- Police with wanted level 0–5: they spawn behind you, chase and ram; heat decays when you stay out of sight
+- Fists (**F**) + pistol (mouse click), car explosions, cash pickups
+- Live minimap, health, cash, wanted stars, mission tracker
+- WebAudio synth sound (engine, sirens, shots) — no audio assets
+- localStorage save; adaptive quality that latches down if FPS stays low
+- Static files under `game/`, no build step, no network request at play
+
+## Controls
 
 | Key | Action |
-| --- | --- |
-| W A S D | Move / drive |
-| Shift | Run |
-| Mouse drag | Look around (wheel zooms) |
-| E | Get in / steal a car · hold to crack the vault |
-| Click | Punch / shoot |
-| 1 / 2 | Fists / pistol |
-| R | Reload |
-| Esc | Pause |
+|---|---|
+| WASD / arrows | Move / drive |
+| Mouse drag | Orbit camera |
+| E | Enter / exit car · hold E at the vault to crack it |
+| Mouse click | Fire pistol |
+| F | Punch |
+| Space | Brake |
+| R | Restart run |
 | M | Mute |
 
-## What is inside
+## Run it
 
-- A procedural harbor city: 7×7 blocks of pastel buildings, roads, sidewalks,
-  palms, street lamps, a plaza fountain, the docks, boats and the harbor water.
-- Traffic that drives the road grid, pedestrians who stroll — and flee — and
-  police cars and officers who chase you when the heat is on.
-- A wanted level (0–5 stars) that rises with crime and fades when you lay low.
-- Three story missions with a beacon, minimap blips and a HUD objective line.
-- Combat: fists, a pistol with reloads, car explosions, health and a hospital.
-- A live minimap, wanted stars, cash, speed, damage flash and screen shake.
-- Synthesized WebAudio sound: engine hum, sirens, gunshots and mission jingles.
-- Saves in the browser (localStorage): cash, mission progress and position.
+```sh
+node serve.ts        # serves game/ on http://localhost:8901
+```
 
-## Design notes
+Open http://localhost:8901 and click **START THE NIGHT**.
 
-- **Mission targets are entrances, not building centers.** A goto/hold
-  step completes within 6–8 units of its target, so each target sits on
-  open ground at the landmark's front door (the hideout's south door,
-  the bank's front steps) — a target at a building's center would be
-  unreachable, because the walls keep the player 6–11 units away.
-- **Cars slide along walls.** Scraping a building scrubs speed only when
-  the car is driving into it; sliding along a face keeps most of the
-  speed, so a car pinned against a wall can drive free instead of
-  creeping until the police ram it apart.
-- **Stealing a car is one crime.** Taking a car raises the heat once;
-  getting back into a car you already own is not another theft.
-- **Adaptive quality.** On a slow renderer the shadow map drops after a
-  2-second frame window reads under 10 FPS, so the game stays playable
-  on weak machines (the check repeats until the drop happens — a
-  one-shot check fires before the average has converged).
-- **Verified in a real browser.** Missions 1 and 2 were driven end to
-  end in Playwright with real key events (no teleports), and the vault
-  hold was cracked with a real E press. The first build's hideout and
-  bank targets sat at the building centers and were unreachable from
-  the street — that is why they now sit at the front door and steps.
-- **Shots.** `game/index.html?shot=start|street|chase|mission&seed=1`
-  stages a scene for screenshots; the page sets `window.__shotReady`
-  when it is painted.
+## Tech
 
-## Structure
-
-- `game/index.html` — the page, the HUD and the start/pause/busted screens.
-- `game/src/main.js` — boot, the loop and the state machine.
-- `game/src/city.js` — the procedural city, colliders and landmarks.
-- `game/src/vehicles.js` — cars, arcade driving, traffic AI and police chases.
-- `game/src/characters.js` — the player, pedestrians and police on foot.
-- `game/src/combat.js` — fists, the pistol, explosions and damage.
-- `game/src/wanted.js` — the wanted level and police response.
-- `game/src/missions.js` — the three story jobs and cash pickups.
-- `game/src/hud.js` — the HUD and the live minimap.
-- `game/src/audio.js` — synthesized sound, no audio files.
-- `game/src/effects.js` — particles, flashes and the mission beacon.
-- `game/src/input.js` — keyboard and mouse.
-- `game/src/config.js` — tuning, palette and world layout.
-- `game/src/rng.js` — seeded random numbers.
-- `game/src/save.js` — save and load.
-- `game/vendor/three.module.min.js` — three.js r160, vendored.
-
-`main.ts` copies `game/` and `screenshots/` to the output directory and
-writes `dossier.json` with the vendored make.fun library.
-
-## License
-
-MIT — see `LICENSE`.
-
----
-
-<sub>Entered on [make.fun](https://make.fun/?ref=wkz0m1sg&utm_source=github&utm_medium=readme&utm_campaign=gta6-01) · AI agents build software for cash rewards</sub>
+three.js r160 (vendored under `game/vendor/`), ES modules, Node 22 stdlib only for the dev server and submission program (`main.ts`).

@@ -1,10 +1,1 @@
-[
-// The four dossier shots, each a real render of the game (game/index.html
-// reads the ?shot= query and stages the scene), never edited or
-// composited. 1-chase.jpg is the cover: a police chase on the main
-// drag. seed=1 pins the procedural city so every shot is reproducible.
-  { "name": "1-chase.jpg", "query": "?shot=chase&seed=1" },
-  { "name": "2-street.jpg", "query": "?shot=street&seed=1" },
-  { "name": "3-mission.jpg", "query": "?shot=mission&seed=1" },
-  { "name": "4-start.jpg", "query": "?shot=start&seed=1" }
-]
+[{"name":"1-chase.jpg","query":"?shot=chase&seed=1"},{"name":"2-street.jpg","query":"?shot=street&seed=1"},{"name":"3-mission.jpg","query":"?shot=mission&seed=1"},{"name":"4-start.jpg","query":"?shot=start&seed=1"}]

@@ -1,205 +1,80 @@
-// Neon Harbor — missions and the story.
-// Rex Marlowe, a wheelman fresh out of Harbor Pen, owes the fixer
-// Vera Kade one last run of jobs. Three missions chain together:
-// a pickup at the docks, a getaway with a passenger, and the Harbor
-// Bank job. Each step is a place to reach (shown by the beacon and
-// the minimap), a thing to hold, or a place to escape to. Cash is
-// the progression: finish all three and the city is yours.
+// Missions: 3 chained jobs, $500 / $800 / $2,000 = $3,300 total.
+// M1: walk to the hideout front door. M2: steal a car, deliver it to the chop shop.
+// M3: hold E at the bank vault steps (real key press), then escape until wanted hits 0.
+import { MISSIONS } from './config.js';
+import { dist2 } from './rng.js';
 
-import { WORLD, MISSIONS } from './config.js';
-import { commitCrime } from './wanted.js';
-
-export const MISSION_DEFS = [
-  // Step positions are the landmarks' ENTRANCES (WORLD.hideout and
-  // WORLD.bank in config.js point at the front door / front steps, not
-  // at the building centers): a goto/hold step completes within 6-8
-  // units, and the walls keep a player 6-11 units from a center, so a
-  // center target could never complete. The docks and the plaza are
-  // open ground and need no such offset.
-  {
-    id: 'pickup',
-    title: 'Job 1 — Harbor Pickup',
-    intro: 'Vera: "Rex, you are out. One package at the docks, no questions. Bring it to the hideout and we are square."',
-    reward: MISSIONS.pickupReward,
-    steps: [
-      { type: 'goto', label: 'Drive to the docks and grab the package', pos: WORLD.docks, radius: 6 },
-      { type: 'goto', label: 'Deliver the package to the hideout', pos: WORLD.hideout, radius: 6 },
-    ],
-  },
-  {
-    id: 'getaway',
-    title: 'Job 2 — The Getaway',
-    intro: 'Vera: "My driver got pinched. Pick me up at the plaza — and bring a fast car. The PD will be all over us."',
-    reward: MISSIONS.getawayReward,
-    steps: [
-      { type: 'goto', label: 'Pick Vera up at the plaza', pos: WORLD.plaza, radius: 6 },
-      { type: 'escape', label: 'Lose the cops and reach the hideout', pos: WORLD.hideout, radius: 6, wanted: 2 },
-    ],
-  },
-  {
-    id: 'bank',
-    title: 'Job 3 — The Harbor Bank Job',
-    intro: 'Vera: "Last one, Rex. The Harbor Bank vault, five seconds of nerve, then run like the whole city is behind you — because it will be."',
-    reward: MISSIONS.bankReward,
-    steps: [
-      { type: 'goto', label: 'Get to the Harbor Bank', pos: WORLD.bank, radius: 8 },
-      { type: 'hold', label: 'Hold E to crack the vault', pos: WORLD.bank, radius: 8, holdSeconds: MISSIONS.robSeconds },
-      { type: 'escape', label: 'Escape the heat — reach the hideout', pos: WORLD.hideout, radius: 6, wanted: 4 },
-    ],
-  },
+export const MISSION_NAMES = [
+  'M1 — Meet the fixer at the hideout',
+  'M2 — Steal a car, deliver it to the chop shop',
+  'M3 — Rob the bank vault, then lose the heat',
 ];
 
-/** Create the mission state: which job, which step, and hold progress. */
-export function createMissions() {
-  return {
-    index: 0,
-    step: 0,
-    holdProgress: 0,
-    done: false,
-    started: false,
-    heatSet: false, // the current escape step has set its wanted level
-  };
-}
-
-export function currentMission(missions) {
-  return MISSION_DEFS[missions.index] || null;
-}
-
-export function currentStep(missions) {
-  const mission = currentMission(missions);
-  return mission ? mission.steps[missions.step] : null;
-}
-
-/** Start (or restart) the current mission: show its intro and point the beacon. */
-export function startMission(G) {
-  const mission = currentMission(G.missions);
-  if (!mission) return;
-  G.missions.started = true;
-  G.missions.step = 0;
-  G.missions.holdProgress = 0;
-  G.missions.heatSet = false;
-  G.hud.showBanner(mission.title, mission.intro);
-  G.audio.missionDone();
-}
-
-/** Advance one step; finishing a mission pays out and starts the next. */
-function advanceStep(G) {
-  const missions = G.missions;
-  const mission = currentMission(missions);
-  missions.step += 1;
-  missions.holdProgress = 0;
-  missions.heatSet = false;
-  if (missions.step >= mission.steps.length) {
-    G.cash += mission.reward;
-    G.hud.showBanner('JOB DONE', `+ $${mission.reward} — ${mission.title} complete.`);
-    G.audio.missionDone();
-    missions.index += 1;
-    missions.step = 0;
-    missions.started = false;
-    if (missions.index >= MISSION_DEFS.length) {
-      missions.done = true;
-      G.hud.showBanner('KING OF THE HARBOR', 'All three jobs done. The city is yours now, Rex — free roam, keep the cash coming.');
-    } else {
-      G.hud.toast('New job from Vera — check the objective.');
-    }
+export function missionObjective(state) {
+  const m = state.mission;
+  if (state.won) return 'KING OF THE HARBOR — you own Neon Harbor.';
+  if (m === 0) return 'M1: Go to the hideout front door (pink marker).';
+  if (m === 1) return 'M2: Get in a car (E) and drive it to the chop shop (yellow marker).';
+  if (m === 2) {
+    if (state.vaultStep === 0) return 'M3: Reach the bank front steps (gold marker).';
+    if (state.vaultStep === 1) return 'M3: HOLD E at the vault to crack it…';
+    return 'M3: ESCAPE! Lose the cops until wanted hits 0.';
   }
+  return '';
 }
 
-/** Distance from the player (on foot or in the car) to a position. */
-function playerDistance(G, pos) {
-  const p = G.player.pos;
-  return Math.hypot(p.x - pos.x, p.z - pos.z);
+export function missionTarget(state) {
+  if (state.mission === 0) return { ...MISSIONS.hideout, color: 0xff2d78 };
+  if (state.mission === 1) return { ...MISSIONS.chopshop, color: 0xffd400 };
+  return { ...MISSIONS.bank, color: 0xffd400 };
 }
 
-/** Step the mission logic: arrivals, holds, escapes and the beacon. */
-export function updateMissions(G, dt, interactHeld) {
-  const missions = G.missions;
-  const mission = currentMission(missions);
-  if (!mission || missions.done) {
-    G.beacon.set({ x: 0, z: 0 }, false);
-    return;
-  }
-  if (!missions.started) {
-    startMission(G);
-    return;
-  }
-  const step = currentStep(missions);
-  if (!step) return;
-  const dist = playerDistance(G, step.pos);
-  G.beacon.set(step.pos, true);
-
-  if (step.type === 'goto') {
-    // This branch only runs for goto steps, so the toast is unconditional.
-    if (dist < step.radius) {
-      G.hud.toast('Objective reached.');
-      advanceStep(G);
-    }
-    return;
-  }
-  if (step.type === 'escape') {
-    // The escape sets the heat ONCE, when the step begins. Setting it
-    // every frame would undo the decay: the moment a star faded
-    // (4 -> 3), the step would push it straight back to 4 and zero
-    // the quiet timer, so the escape could never complete. Measured
-    // in a real drive, the timer reached 12 twice and the level was
-    // forced back both times. heatSet (cleared when the step
-    // advances) stops that — after the one-time set, the heat is
-    // the player's to lose.
-    if (!missions.heatSet) {
-      if (G.wanted.level < step.wanted) {
-        G.wanted.level = step.wanted;
-        G.wanted.quietTimer = 0;
-        G.hud.toast(`WANTED LEVEL ${step.wanted} — run!`);
+export function stepMissions(state, input, dt) {
+  const p = state.player;
+  if (state.won) return;
+  if (state.mission === 0) {
+    const t = MISSIONS.hideout;
+    if (dist2(p.x, p.z, t.x, t.z) < t.r * t.r) completeMission(state, 0);
+  } else if (state.mission === 1) {
+    const t = MISSIONS.chopshop;
+    if (state.inCar && dist2(p.x, p.z, t.x, t.z) < t.r * t.r) completeMission(state, 1);
+  } else if (state.mission === 2) {
+    const t = MISSIONS.bank;
+    const inR = dist2(p.x, p.z, t.x, t.z) < t.r * t.r;
+    if (state.vaultStep === 0) {
+      if (inR && !state.inCar) state.vaultStep = 1;
+    } else if (state.vaultStep === 1) {
+      // Vault hold completes ONLY by a real E key press held in the radius.
+      if (inR && input.down('KeyE')) {
+        state.vaultProgress += dt;
+        if (state.vaultProgress >= MISSIONS.vaultHold) {
+          state.vaultStep = 2;
+          state.cash += 0; // payout lands on escape
+          // Heat is set ONCE here (heatSet flag) — never re-applied per frame.
+          if (!state.heatSet) { state.heatSet = true; state.wanted = Math.max(state.wanted, 3); }
+          state.flash = 'VAULT CRACKED! $2,000 — now ESCAPE!';
+          state.flashT = 3;
+          state.audio?.mission();
+        }
+      } else state.vaultProgress = Math.max(0, state.vaultProgress - dt * 2);
+    } else if (state.vaultStep === 2) {
+      if (state.wanted === 0) {
+        state.cash += MISSIONS.pay[2];
+        state.won = true;
+        state.flash = 'KING OF THE HARBOR';
+        state.audio?.mission();
+        state.save?.();
       }
-      missions.heatSet = true;
-    }
-    if (dist < step.radius && G.wanted.level <= 2) {
-      advanceStep(G);
-    } else if (dist < step.radius) {
-      G.hud.setObjective(`${step.label} — lose the cops first!`);
-    }
-    return;
-  }
-  if (step.type === 'hold') {
-    if (dist < step.radius && interactHeld) {
-      missions.holdProgress += dt;
-      G.hud.setObjective(`${step.label}… ${Math.ceil(step.holdSeconds - missions.holdProgress)}s`);
-      if (missions.holdProgress >= step.holdSeconds) {
-        commitCrime(G, 1);
-        advanceStep(G);
-      }
-    } else {
-      missions.holdProgress = Math.max(0, missions.holdProgress - dt * 2);
     }
   }
 }
 
-/** The cash pickups scattered around the city: ten green stacks. */
-export function spawnCashPickups(scene, THREE) {
-  const pickups = [];
-  const geo = new THREE.BoxGeometry(1.4, 0.5, 1.0);
-  const mat = new THREE.MeshLambertMaterial({ color: 0x30b06a });
-  const mat2 = new THREE.MeshLambertMaterial({ color: 0x2a8a55 });
-  // Cash sits on the roads, never inside a building: each spot has at
-  // least one coordinate on a road line.
-  const spots = [
-    { x: -52, z: -26 }, { x: 52, z: 78 }, { x: -26, z: 52 }, { x: 104, z: -52 },
-    { x: -104, z: 26 }, { x: 26, z: 104 }, { x: -78, z: -104 }, { x: 0, z: -78 },
-    { x: 78, z: 0 }, { x: -52, z: -78 },
-  ];
-  for (const s of spots) {
-    const group = new THREE.Group();
-    const a = new THREE.Mesh(geo, mat);
-    a.position.y = 0.5;
-    a.rotation.y = 0.4;
-    group.add(a);
-    const b = new THREE.Mesh(geo, mat2);
-    b.position.y = 0.9;
-    b.rotation.y = -0.3;
-    group.add(b);
-    group.position.set(s.x, 0, s.z);
-    scene.add(group);
-    pickups.push({ mesh: group, pos: { x: s.x, z: s.z }, taken: false });
-  }
-  return pickups;
+function completeMission(state, idx) {
+  state.cash += MISSIONS.pay[idx];
+  state.mission = idx + 1;
+  state.flash = idx === 0 ? 'M1 DONE — +$500. Steal a car for M2.' : 'M2 DONE — +$800. Hit the bank for M3.';
+  state.flashT = 3;
+  state.audio?.mission();
+  state.audio?.pickup();
+  state.save?.();
 }

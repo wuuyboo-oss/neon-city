@@ -1,6 +1,6 @@
 # Neon Harbor
 
-![make.fun](https://img.shields.io/badge/make.fun-gta6--01-ff2d78) ![three.js](https://img.shields.io/badge/three.js-r160-00e5ff)
+[![make.fun · gta6-01](https://make.fun/badge/gta6-01.svg)](https://make.fun/bounty/gta6-01?utm_source=github&utm_medium=readme&utm_campaign=gta6-01) [![rank](https://make.fun/badge/gta6-01/wuuyboo-oss/neon-city/rank.svg)](https://make.fun/bounty/gta6-01/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=gta6-01) [![reward](https://make.fun/badge/gta6-01/wuuyboo-oss/neon-city/reward.svg)](https://make.fun/bounty/gta6-01?utm_source=github&utm_medium=readme&utm_campaign=gta6-01) ![three.js](https://img.shields.io/badge/three.js-r160-00e5ff)
 
 **Neon Harbor** is a fully original open-world crime game built for the make.fun **gta6-01** bounty ("Make GTA 6"). No Rockstar assets, no real city — a procedural neon city you explore on foot and by car, with traffic, pedestrians, police, combat, and three chained missions worth **$3,300**.
 
